@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="StavCalc" />
+  <title>StavCalc</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #1a1a1a;
+      --surface:  #252525;
+      --border:   #333333;
+      --text:     #f0f0f0;
+      --muted:    #888888;
+      --accent:   #f0a500;
+      --danger:   #e05555;
+      --radius:   12px;
+      --font:     system-ui, -apple-system, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── SCREEN ROUTER ── */
+    .screen { display: none; flex-direction: column; height: 100dvh; }
+    .screen.active { display: flex; }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.05em; }
+    .btn-back {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px 8px 4px 0;
+      line-height: 1;
+    }
+
+    /* ── SCROLL AREA ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+    }
+
+    /* ── HOME SCREEN ── */
+    .app-title {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .app-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .app-title p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px;
+      color: var(--text);
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .menu-btn:active { background: #2e2e2e; border-color: var(--accent); }
+    .menu-btn .icon { font-size: 1.6rem; width: 36px; text-align: center; }
+    .menu-btn .label { flex: 1; }
+    .menu-btn .arrow { color: var(--muted); font-size: 1rem; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 10px;
+    }
+    .radio-group label {
+      flex: 1;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .radio-group input[type=radio] { display: none; }
+    .radio-group input[type=radio]:checked + label {
+      border-color: var(--accent);
+      background: #2a2200;
+      color: var(--accent);
+    }
+
+    input[type=number] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.3rem;
+      padding: 14px 16px;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type=number]:focus { border-color: var(--accent); }
+
+    .btn-calc {
+      width: 100%;
+      background: var(--accent);
+      color: #1a1a1a;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 8px;
+      letter-spacing: 0.04em;
+    }
+    .btn-calc:active { opacity: 0.85; }
+
+    /* ── RESULT ── */
+    .result {
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: none;
+    }
+    .result.visible { display: block; }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .rlabel { color: var(--muted); font-size: 0.85rem; }
+    .result-row .rval {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .result-row .rval.sharp { color: #e05555; }
+    .result-row .rval.right { color: #4caf50; }
+
+    /* ── TABLE ── */
+    .tbl {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+    .tbl th {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 0;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .tbl th:last-child { text-align: right; }
+    .tbl td { padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
+    .tbl td:last-child { text-align: right; color: var(--accent); font-weight: 700; }
+    .tbl tr:last-child td { border-bottom: none; }
+
+    .section-title {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+    .label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .label-row label { margin-bottom: 0; }
+    .btn-info { background: none; border: 1px solid var(--border); border-radius: 50%; color: var(--accent); font-size: 0.85rem; font-weight: 700; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-info:active { background: var(--surface); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; padding: 20px; overflow-y: auto; }
+    .modal-overlay.open { display: block; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); max-width: 500px; margin: 0 auto; overflow: hidden; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { font-size: 1rem; font-weight: 700; }
+    .btn-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .modal-body { padding: 16px 20px; }
+    .norm-category { margin-bottom: 20px; }
+    .norm-category h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .norm-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+    .norm-item:active { border-color: var(--accent); }
+    .norm-item-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .norm-item-vals { font-size: 0.8rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .norm-item-vals .opt { color: var(--accent); font-weight: 700; }
+    .norm-item-source { font-size: 0.7rem; color: #555; margin-top: 4px; }
+    .modal-hint { font-size: 0.75rem; color: var(--muted); text-align: center; padding: 0 0 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HOME ══════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="content">
+    <div class="app-title">
+      <h1>StavCalc</h1>
+      <p>Stavební kalkulačka pro řemeslníky</p>
+    </div>
+    <nav class="menu">
+      <button class="menu-btn" onclick="show('screen-uhel')">
+        <span class="icon">📐</span>
+        <span class="label">Úhel z diagonály</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-btn" onclick="show('screen-tan')">
+        <span class="icon">📐</span>
+        <span class="label">Vytyčení bodu</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-btn" onclick="show('screen-spady')">
+        <span class="icon">📏</span>
+        <span class="label">Spády</span>
+        <span class="arrow">›</span>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<!-- ══════════════ ÚHEL Z DIAGONÁLY ══════════════ -->
+<div id="screen-uhel" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Úhel z diagonály</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Rameno</label>
+      <div class="radio-group">
+        <input type="radio" name="rameno" id="r1" value="100" checked /><label for="r1">1 m</label>
+        <input type="radio" name="rameno" id="r2" value="200" /><label for="r2">2 m</label>
+        <input type="radio" name="rameno" id="r3" value="300" /><label for="r3">3 m</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Diagonála (cm)</label>
+      <input type="number" id="diagonala" placeholder="např. 138" inputmode="decimal" />
+    </div>
+
+    <button class="btn-calc" onclick="pocitejUhel()">Vypočítat</button>
+
+    <div class="result" id="result-uhel">
+      <div class="result-row">
+        <span class="rlabel">Úhel rohu</span>
+        <span class="rval" id="res-uhel">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Odchylka od 90°</span>
+        <span class="rval" id="res-odchylka">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Charakter rohu</span>
+        <span class="rval" id="res-charakter">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ VYTYČENÍ BODU ══════════════ -->
+<div id="screen-tan" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Vytyčení bodu</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Délka ramene (cm)</label>
+      <input type="number" id="tan-rameno" placeholder="např. 100" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Požadovaný úhel (°)</label>
+      <input type="number" id="tan-uhel" placeholder="např. 35" inputmode="decimal" />
+    </div>
+
+    <button class="btn-calc" onclick="pocitejTan()">Vypočítat</button>
+
+    <div class="result" id="result-tan">
+      <div class="result-row">
+        <span class="rlabel">Vzdálenost bodu</span>
+        <span class="rval" id="res-tan">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ SPÁDY ══════════════ -->
+<div id="screen-spady" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Spády</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Délka (m)</label>
+      <input type="number" id="sp-delka" placeholder="např. 4" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Typ spádu</label>
+      <div class="radio-group">
+        <input type="radio" name="sp-typ" id="sp-pct" value="pct" checked /><label for="sp-pct">%</label>
+        <input type="radio" name="sp-typ" id="sp-deg" value="deg" /><label for="sp-deg">°</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label-row">
+        <label id="sp-hodnota-label" for="sp-hodnota">Hodnota spádu (%)</label>
+        <button class="btn-info" onclick="openModal()" title="Normová doporučení">i</button>
+      </div>
+      <input type="number" id="sp-hodnota" placeholder="např. 2" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Krok tabulky</label>
+      <div class="radio-group">
+        <input type="radio" name="sp-krok" id="k50" value="0.5" checked /><label for="k50">50 cm</label>
+        <input type="radio" name="sp-krok" id="k100" value="1" /><label for="k100">1 m</label>
+        <input type="radio" name="sp-krok" id="k200" value="2" /><label for="k200">2 m</label>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="pocitejSpady()">Vypočítat</button>
+
+    <div class="result" id="result-spady">
+      <p class="section-title">Tabulka terčů</p>
+      <table class="tbl">
+        <thead>
+          <tr><th>Vzdálenost</th><th>Převýšení</th></tr>
+        </thead>
+        <tbody id="spady-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── data norem ──
+  const NORMY = [
+    {
+      kategorie: 'Exteriérové pochozí plochy',
+      polozky: [
+        { name: 'Spád chodníku (příčný)', opt: 2.0, min: 1.0, max: 2.0, zdroj: 'ČSN 73 6110 / Bezbar. předpisy' },
+        { name: 'Balkony a lodžie', opt: 2.0, min: 1.0, max: 3.0, zdroj: 'ČSN 73 1901-1' },
+        { name: 'Střešní terasy', opt: 1.5, min: 1.0, max: 3.0, zdroj: 'ČSN 73 1901' },
+      ]
+    },
+    {
+      kategorie: 'Interiér a sanita',
+      polozky: [
+        { name: 'Sprchový kout (dlažba)', opt: 2.0, min: 1.0, max: 2.5, zdroj: 'Doporučení výrobců žlabů' },
+      ]
+    },
+    {
+      kategorie: 'Parapety',
+      polozky: [
+        { name: 'Vnější parapet (oplechování)', opt: 8.7, min: 5.2, max: 15.0, zdroj: 'ČSN 73 3610 / ČSN 74 6077' },
+        { name: 'Vnitřní parapet', opt: 0.0, min: 0.0, max: 1.0, zdroj: 'Stavební zvyklosti' },
+      ]
+    },
+    {
+      kategorie: 'Střechy',
+      polozky: [
+        { name: 'Plochá střecha', opt: 3.0, min: 2.0, max: 8.7, zdroj: 'ČSN 73 1901' },
+        { name: 'Střešní žlab (podokapní)', opt: 0.5, min: 0.5, max: 1.0, zdroj: 'ČSN 73 3610' },
+      ]
+    },
+    {
+      kategorie: 'Kanalizace a potrubí',
+      polozky: [
+        { name: 'Vnitřní ležaté svody', opt: 2.0, min: 1.0, max: 5.0, zdroj: 'ČSN EN 12056-2' },
+        { name: 'Venkovní přípojka (v zemi)', opt: 2.0, min: 1.0, max: 15.0, zdroj: 'ČSN 75 6101' },
+      ]
+    },
+    {
+      kategorie: 'Vjezdy a garáže',
+      polozky: [
+        { name: 'Rampa do podzemních garáží', opt: 12.0, min: 2.0, max: 17.0, zdroj: 'ČSN 73 6058' },
+        { name: 'Vnější nezastřešená rampa', opt: 10.0, min: 2.0, max: 15.0, zdroj: 'ČSN 73 6058' },
+      ]
+    },
+    {
+      kategorie: 'Bezbariérové rampy',
+      polozky: [
+        { name: 'Rampa pro vozíčkáře (vnější)', opt: 6.25, min: 2.0, max: 8.33, zdroj: 'Vyhl. o bezbariérovém užívání' },
+        { name: 'Rampa pro vozíčkáře (vnitřní)', opt: 6.25, min: 2.0, max: 8.33, zdroj: 'Vyhl. o bezbariérovém užívání' },
+      ]
+    },
+  ];
+
+  function openModal() {
+    const content = document.getElementById('modal-content');
+    let html = '';
+    NORMY.forEach(kat => {
+      html += `<div class="norm-category"><h3>${kat.kategorie}</h3>`;
+      kat.polozky.forEach(p => {
+        html += `
+          <div class="norm-item" onclick="vyplnSpad(${p.opt})">
+            <div class="norm-item-name">${p.name}</div>
+            <div class="norm-item-vals">
+              <span>min ${p.min} %</span>
+              <span class="opt">▶ ${p.opt} %</span>
+              <span>max ${p.max} %</span>
+            </div>
+            <div class="norm-item-source">${p.zdroj}</div>
+          </div>`;
+      });
+      html += '</div>';
+    });
+    content.innerHTML = html;
+    document.getElementById('norm-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('norm-modal').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('norm-modal')) closeModal();
+  }
+
+  function vyplnSpad(hodnota) {
+    // Přepni na procenta
+    document.getElementById('sp-pct').checked = true;
+    document.getElementById('sp-hodnota-label').textContent = 'Hodnota spádu (%)';
+    // Vyplň hodnotu
+    document.getElementById('sp-hodnota').value = hodnota;
+    closeModal();
+  }
+
+  // ── navigace ──
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // ── label spádu ──
+  document.querySelectorAll('input[name="sp-typ"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('sp-hodnota-label').textContent =
+        r.value === 'pct' ? 'Hodnota spádu (%)' : 'Hodnota spádu (°)';
+    });
+  });
+
+  // ── úhel z diagonály ──
+  function pocitejUhel() {
+    const r = parseFloat(document.querySelector('input[name="rameno"]:checked').value);
+    const d = parseFloat(document.getElementById('diagonala').value);
+    if (isNaN(d) || d <= 0) return;
+
+    const cos = (2 * r * r - d * d) / (2 * r * r);
+    if (cos < -1 || cos > 1) return;
+    const uhel = Math.acos(cos) * (180 / Math.PI);
+    const odchylka = uhel - 90;
+
+    document.getElementById('res-uhel').textContent = uhel.toFixed(2) + '°';
+
+    const odEl = document.getElementById('res-odchylka');
+    odEl.textContent = (odchylka >= 0 ? '+' : '') + odchylka.toFixed(2) + '°';
+
+    const chEl = document.getElementById('res-charakter');
+    if (Math.abs(odchylka) < 0.05) {
+      chEl.textContent = 'Roh je PRAVÝ';
+      chEl.className = 'rval right';
+    } else if (uhel < 90) {
+      chEl.textContent = 'Roh je OSTRÝ';
+      chEl.className = 'rval sharp';
+    } else {
+      chEl.textContent = 'Roh je TUPÝ';
+      chEl.className = 'rval';
+    }
+
+    document.getElementById('result-uhel').classList.add('visible');
+  }
+
+  // ── vytyčení bodu ──
+  function pocitejTan() {
+    const rameno = parseFloat(document.getElementById('tan-rameno').value);
+    const uhel = parseFloat(document.getElementById('tan-uhel').value);
+    if (isNaN(rameno) || isNaN(uhel) || uhel <= 0 || uhel >= 90) return;
+
+    const vzdalenost = rameno * Math.tan(uhel * Math.PI / 180);
+    document.getElementById('res-tan').textContent = vzdalenost.toFixed(2) + ' cm';
+    document.getElementById('result-tan').classList.add('visible');
+  }
+
+  // ── spády ──
+  function pocitejSpady() {
+    const delka = parseFloat(document.getElementById('sp-delka').value);
+    const hodnota = parseFloat(document.getElementById('sp-hodnota').value);
+    const typ = document.querySelector('input[name="sp-typ"]:checked').value;
+    const krok = parseFloat(document.querySelector('input[name="sp-krok"]:checked').value);
+    if (isNaN(delka) || isNaN(hodnota) || delka <= 0 || hodnota <= 0) return;
+
+    // převýšení na metr délky v mm
+    let mmNaMetr;
+    if (typ === 'pct') {
+      mmNaMetr = (hodnota / 100) * 1000;
+    } else {
+      mmNaMetr = Math.tan(hodnota * Math.PI / 180) * 1000;
+    }
+
+    const tbody = document.getElementById('spady-tbody');
+    tbody.innerHTML = '';
+
+    const addRow = (pos) => {
+      const mm = -(mmNaMetr * pos);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${pos.toFixed(2).replace('.', ',')} m</td><td>${Math.round(mm)} mm</td>`;
+      tbody.appendChild(tr);
+    };
+
+    // Pokud je délka kratší nebo rovna kroku, zobraz jen start a konec
+    if (delka <= krok) {
+      addRow(0);
+      addRow(delka);
+    } else {
+      for (let pos = 0; pos < delka - 0.001; pos += krok) {
+        addRow(pos);
+      }
+      // Vždy přidej poslední bod = zadaná délka
+      addRow(delka);
+    }
+
+    document.getElementById('result-spady').classList.add('visible');
+  }
+</script>
+
+<!-- ══════════════ MODAL – NORMOVÁ DOPORUČENÍ ══════════════ -->
+<div id="norm-modal" class="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Normová doporučení spádů</h2>
+      <button class="btn-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Klepnutím na položku předvyplníš hodnotu spádu.</p>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Service Worker registrace -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+<!-- Patička -->
+<footer style="text-align:center; font-size: 0.8em; color: #888; padding: 1em 0;">
+  Součást ekosystému <strong>NeoStudio Analytics</strong> – © 2026
+</footer> 
+</body>
+</html>
