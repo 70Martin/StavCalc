@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="StavCalc" />
+  <title>StavCalc</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #1a1a1a;
+      --surface:  #252525;
+      --border:   #333333;
+      --text:     #f0f0f0;
+      --muted:    #888888;
+      --accent:   #f0a500;
+      --danger:   #e05555;
+      --success:  #4caf50;
+      --radius:   12px;
+      --font:     system-ui, -apple-system, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── SCREEN ROUTER ── */
+    .screen { display: none; flex-direction: column; height: 100dvh; }
+    .screen.active { display: flex; }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.05em; }
+    .btn-back {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px 8px 4px 0;
+      line-height: 1;
+    }
+
+    /* ── SCROLL AREA ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+    }
+
+    /* ── HOME SCREEN ── */
+    .app-title {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .app-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .app-title p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px;
+      color: var(--text);
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .menu-btn:active { background: #2e2e2e; border-color: var(--accent); }
+    .menu-btn .icon { font-size: 1.6rem; width: 36px; text-align: center; }
+    .menu-btn .label { flex: 1; }
+    .menu-btn .sublabel { font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+    .menu-btn .arrow { color: var(--muted); font-size: 1rem; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 10px;
+    }
+    .radio-group label {
+      flex: 1;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .radio-group input[type=radio] { display: none; }
+    .radio-group input[type=radio]:checked + label {
+      border-color: var(--accent);
+      background: #2a2200;
+      color: var(--accent);
+    }
+
+    input[type=number], select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.3rem;
+      padding: 14px 16px;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    select {
+      font-size: 1rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+    select option { background: var(--surface); }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type=number]:focus, select:focus { border-color: var(--accent); }
+
+    .btn-calc {
+      width: 100%;
+      background: var(--accent);
+      color: #1a1a1a;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 8px;
+      letter-spacing: 0.04em;
+    }
+    .btn-calc:active { opacity: 0.85; }
+
+    /* ── RESULT ── */
+    .result {
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: none;
+    }
+    .result.visible { display: block; }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .rlabel { color: var(--muted); font-size: 0.85rem; }
+    .result-row .rval {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .result-row .rval.sharp { color: var(--danger); }
+    .result-row .rval.right { color: var(--success); }
+
+    /* ── TABLE ── */
+    .tbl {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+    .tbl th {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 0;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .tbl th:last-child { text-align: right; }
+    .tbl td { padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
+    .tbl td:last-child { text-align: right; color: var(--accent); font-weight: 700; }
+    .tbl td.danger { color: var(--danger) !important; }
+    .tbl tr:last-child td { border-bottom: none; }
+
+    .section-title {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+    .label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .label-row label { margin-bottom: 0; }
+    .btn-info { background: none; border: 1px solid var(--border); border-radius: 50%; color: var(--accent); font-size: 0.85rem; font-weight: 700; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-info:active { background: var(--surface); }
+
+    /* ── ALERT BOXES ── */
+    .alert {
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      display: none;
+    }
+    .alert.visible { display: block; }
+    .alert.warning { background: #2a1a00; border: 1px solid #a05000; color: #ffb74d; }
+    .alert.success { background: #0a1f0a; border: 1px solid #2e7d32; color: #81c784; }
+    .alert ul { margin: 8px 0 0 18px; }
+    .alert li { margin-bottom: 4px; }
+
+    /* ── RESULT GRID (terče) ── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .result-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .result-item .big { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .result-item .small { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── VIZUÁLNÍ GRAF (terče) ── */
+    .slope-visual-wrap {
+      margin-top: 20px;
+      padding: 16px 12px 44px;
+      background: #1e1e1e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      position: relative;
+    }
+    .slope-visual {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 120px;
+      border-bottom: 2px solid var(--border);
+      padding: 0 2px;
+      margin-bottom: 28px;
+    }
+    .slope-visual::before {
+      content: "Voda odtéká →";
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .pedestal-bar {
+      flex: 1;
+      background: linear-gradient(to top, #f0a500, #ffd54f);
+      border-radius: 3px 3px 0 0;
+      margin: 0 2px;
+      position: relative;
+      min-width: 14px;
+      max-width: 36px;
+      transition: height 0.3s ease-out;
+    }
+    .pedestal-bar span {
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pedestal-bar.first { background: linear-gradient(to top, var(--success), #a5d6a7); }
+    .pedestal-bar.last { background: linear-gradient(to top, #e05555, #ef9a9a); }
+    .slope-visual-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .info-box {
+      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; padding: 20px; overflow-y: auto; }
+    .modal-overlay.open { display: block; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); max-width: 500px; margin: 0 auto; overflow: hidden; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { font-size: 1rem; font-weight: 700; }
+    .btn-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .modal-body { padding: 16px 20px; }
+    .norm-category { margin-bottom: 20px; }
+    .norm-category h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .norm-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+    .norm-item:active { border-color: var(--accent); }
+    .norm-item-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .norm-item-vals { font-size: 0.8rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .norm-item-vals .opt { color: var(--accent); font-weight: 700; }
+    .norm-item-source { font-size: 0.7rem; color: #555; margin-top: 4px; }
+    .modal-hint { font-size: 0.75rem; color: var(--muted); text-align: center; padding: 0 0 8px; }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 16px 0 12px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HOME ══════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="content">
+    <div class="app-title">
+      <h1>StavCalc</h1>
+      <p>Stavební kalkulačka pro řemeslníky</p>
+    </div>
+    <nav class="menu">
+      <button class="menu-btn" onclick="show('screen-uhel')">
+        <span class="icon">📐</span>
+        <div class="label">
+          <div>Úhel z diagonály</div>
+          <div class="sublabel">Kontrola pravého rohu</div>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-btn" onclick="show('screen-tan')">
+        <span class="icon">📍</span>
+        <div class="label">
+          <div>Vytyčení bodu</div>
+          <div class="sublabel">Vzdálenost z úhlu (tg)</div>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-btn" onclick="show('screen-spady')">
+        <span class="icon">📏</span>
+        <div class="label">
+          <div>Spády</div>
+          <div class="sublabel">Spádový beton, žlaby, potrubí</div>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-btn" onclick="show('screen-terce')">
+        <span class="icon">🪨</span>
+        <div class="label">
+          <div>Terče na terase</div>
+          <div class="sublabel">Výšky terčů, obkladačské práce</div>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+    </nav>
+  </div>
+  <footer>Součást ekosystému <strong>NeoStudio Analytics</strong> – © 2026</footer>
+</div>
+
+<!-- ══════════════ ÚHEL Z DIAGONÁLY ══════════════ -->
+<div id="screen-uhel" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Úhel z diagonály</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Rameno</label>
+      <div class="radio-group">
+        <input type="radio" name="rameno" id="r1" value="100" checked /><label for="r1">1 m</label>
+        <input type="radio" name="rameno" id="r2" value="200" /><label for="r2">2 m</label>
+        <input type="radio" name="rameno" id="r3" value="300" /><label for="r3">3 m</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Diagonála (cm)</label>
+      <input type="number" id="diagonala" placeholder="např. 138" inputmode="decimal" />
+    </div>
+
+    <button class="btn-calc" onclick="pocitejUhel()">Vypočítat</button>
+
+    <div class="result" id="result-uhel">
+      <div class="result-row">
+        <span class="rlabel">Úhel rohu</span>
+        <span class="rval" id="res-uhel">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Odchylka od 90°</span>
+        <span class="rval" id="res-odchylka">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Charakter rohu</span>
+        <span class="rval" id="res-charakter">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ VYTYČENÍ BODU ══════════════ -->
+<div id="screen-tan" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Vytyčení bodu</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Délka ramene (cm)</label>
+      <input type="number" id="tan-rameno" placeholder="např. 100" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Požadovaný úhel (°)</label>
+      <input type="number" id="tan-uhel" placeholder="např. 35" inputmode="decimal" />
+    </div>
+
+    <button class="btn-calc" onclick="pocitejTan()">Vypočítat</button>
+
+    <div class="result" id="result-tan">
+      <div class="result-row">
+        <span class="rlabel">Vzdálenost bodu</span>
+        <span class="rval" id="res-tan">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ SPÁDY ══════════════ -->
+<div id="screen-spady" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Spády</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Délka (m)</label>
+      <input type="number" id="sp-delka" placeholder="např. 4" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Typ spádu</label>
+      <div class="radio-group">
+        <input type="radio" name="sp-typ" id="sp-pct" value="pct" checked /><label for="sp-pct">%</label>
+        <input type="radio" name="sp-typ" id="sp-deg" value="deg" /><label for="sp-deg">°</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label-row">
+        <label id="sp-hodnota-label" for="sp-hodnota">Hodnota spádu (%)</label>
+        <button class="btn-info" onclick="openModal()" title="Normová doporučení">i</button>
+      </div>
+      <input type="number" id="sp-hodnota" placeholder="např. 2" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Krok tabulky</label>
+      <div class="radio-group">
+        <input type="radio" name="sp-krok" id="k50" value="0.5" checked /><label for="k50">50 cm</label>
+        <input type="radio" name="sp-krok" id="k100" value="1" /><label for="k100">1 m</label>
+        <input type="radio" name="sp-krok" id="k200" value="2" /><label for="k200">2 m</label>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="pocitejSpady()">Vypočítat</button>
+
+    <div class="result" id="result-spady">
+      <p class="section-title">Tabulka terčů</p>
+      <table class="tbl">
+        <thead>
+          <tr><th>Vzdálenost</th><th>Převýšení</th></tr>
+        </thead>
+        <tbody id="spady-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ TERČE NA TERASE ══════════════ -->
+<div id="screen-terce" class="screen">
+  <header>
+    <button class="btn-back" onclick="show('screen-home')">‹</button>
+    <h1>Terče na terase</h1>
+  </header>
+  <div class="content">
+
+    <div class="field">
+      <label>Formát dlaždice (mm)</label>
+      <div class="radio-group" style="gap:8px;">
+        <input type="radio" name="dlaz-format" id="df1" value="400x400" checked /><label for="df1">400×400</label>
+        <input type="radio" name="dlaz-format" id="df2" value="600x600" /><label for="df2">600×600</label>
+        <input type="radio" name="dlaz-format" id="df3" value="custom" /><label for="df3">Vlastní</label>
+      </div>
+    </div>
+
+    <div class="field" id="field-custom" style="display:none;">
+      <label>Délka × Šířka dlaždice (mm)</label>
+      <div style="display:flex;gap:10px;">
+        <input type="number" id="tileL" placeholder="Délka" inputmode="decimal" style="flex:1;" />
+        <input type="number" id="tileW" placeholder="Šířka" inputmode="decimal" style="flex:1;" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Rozměry celé plochy (mm)</label>
+      <div style="display:flex;gap:10px;">
+        <input type="number" id="areaL" placeholder="Délka" value="1600" inputmode="decimal" style="flex:1;" />
+        <input type="number" id="areaW" placeholder="Šířka" value="2400" inputmode="decimal" style="flex:1;" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Požadovaný spád (%)</label>
+      <input type="number" id="tc-slope" value="1.5" step="0.1" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Směr spádu</label>
+      <select id="slopeDir">
+        <option value="L">Podél délky (od zdi k odtoku)</option>
+        <option value="W">Podél šířky</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Výška terče v nejvyšším bodě (mm)</label>
+      <input type="number" id="startH" value="80" min="12" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label>Tvar terasy</label>
+      <select id="terraceShape">
+        <option value="rect">Obdélník / Čtverec</option>
+        <option value="L">Tvar L</option>
+        <option value="U">Tvar U</option>
+        <option value="complex">Složitý tvar</option>
+      </select>
+    </div>
+
+    <button class="btn-calc" onclick="pocitejTerce()">Vypočítat</button>
+
+    <div id="tc-warning" class="alert warning"></div>
+    <div id="tc-success" class="alert success"></div>
+
+    <div class="result" id="result-terce">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="big" id="res-tiles">0</div>
+          <div class="small">Celkem dlaždic</div>
+        </div>
+        <div class="result-item">
+          <div class="big" id="res-pedestals">0</div>
+          <div class="small">Celkem terčů</div>
+        </div>
+      </div>
+
+      <p class="section-title">Tabulka výšek terčů (klesající)</p>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Řada</th>
+            <th>Vzdálenost</th>
+            <th style="text-align:right;">Výška terče</th>
+          </tr>
+        </thead>
+        <tbody id="terce-tbody"></tbody>
+      </table>
+
+      <div class="slope-visual-wrap">
+        <div class="slope-visual" id="tc-visual"></div>
+        <div class="slope-visual-labels">
+          <span>🟢 Nejvyšší bod</span>
+          <span>🔴 Nejnižší bod (odtok)</span>
+        </div>
+      </div>
+
+      <div class="info-box" id="tc-info"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ MODAL – NORMOVÁ DOPORUČENÍ ══════════════ -->
+<div id="norm-modal" class="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Normová doporučení spádů</h2>
+      <button class="btn-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Klepnutím na položku předvyplníš hodnotu spádu.</p>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── data norem ──
+  const NORMY = [
+    {
+      kategorie: 'Exteriérové pochozí plochy',
+      polozky: [
+        { name: 'Spád chodníku (příčný)', opt: 2.0, min: 1.0, max: 2.0, zdroj: 'ČSN 73 6110 / Bezbar. předpisy' },
+        { name: 'Balkony a lodžie', opt: 2.0, min: 1.0, max: 3.0, zdroj: 'ČSN 73 1901-1' },
+        { name: 'Střešní terasy', opt: 1.5, min: 1.0, max: 3.0, zdroj: 'ČSN 73 1901' },
+      ]
+    },
+    {
+      kategorie: 'Interiér a sanita',
+      polozky: [
+        { name: 'Sprchový kout (dlažba)', opt: 2.0, min: 1.0, max: 2.5, zdroj: 'Doporučení výrobců žlabů' },
+      ]
+    },
+    {
+      kategorie: 'Parapety',
+      polozky: [
+        { name: 'Vnější parapet (oplechování)', opt: 8.7, min: 5.2, max: 15.0, zdroj: 'ČSN 73 3610 / ČSN 74 6077' },
+        { name: 'Vnitřní parapet', opt: 0.0, min: 0.0, max: 1.0, zdroj: 'Stavební zvyklosti' },
+      ]
+    },
+    {
+      kategorie: 'Střechy',
+      polozky: [
+        { name: 'Plochá střecha', opt: 3.0, min: 2.0, max: 8.7, zdroj: 'ČSN 73 1901' },
+        { name: 'Střešní žlab (podokapní)', opt: 0.5, min: 0.5, max: 1.0, zdroj: 'ČSN 73 3610' },
+      ]
+    },
+    {
+      kategorie: 'Kanalizace a potrubí',
+      polozky: [
+        { name: 'Vnitřní ležaté svody', opt: 2.0, min: 1.0, max: 5.0, zdroj: 'ČSN EN 12056-2' },
+        { name: 'Venkovní přípojka (v zemi)', opt: 2.0, min: 1.0, max: 15.0, zdroj: 'ČSN 75 6101' },
+      ]
+    },
+    {
+      kategorie: 'Vjezdy a garáže',
+      polozky: [
+        { name: 'Rampa do podzemních garáží', opt: 12.0, min: 2.0, max: 17.0, zdroj: 'ČSN 73 6058' },
+        { name: 'Vnější nezastřešená rampa', opt: 10.0, min: 2.0, max: 15.0, zdroj: 'ČSN 73 6058' },
+      ]
+    },
+    {
+      kategorie: 'Bezbariérové rampy',
+      polozky: [
+        { name: 'Rampa pro vozíčkáře (vnější)', opt: 6.25, min: 2.0, max: 8.33, zdroj: 'Vyhl. o bezbariérovém užívání' },
+        { name: 'Rampa pro vozíčkáře (vnitřní)', opt: 6.25, min: 2.0, max: 8.33, zdroj: 'Vyhl. o bezbariérovém užívání' },
+      ]
+    },
+  ];
+
+  function openModal() {
+    const content = document.getElementById('modal-content');
+    let html = '';
+    NORMY.forEach(kat => {
+      html += `<div class="norm-category"><h3>${kat.kategorie}</h3>`;
+      kat.polozky.forEach(p => {
+        html += `
+          <div class="norm-item" onclick="vyplnSpad(${p.opt})">
+            <div class="norm-item-name">${p.name}</div>
+            <div class="norm-item-vals">
+              <span>min ${p.min} %</span>
+              <span class="opt">▶ ${p.opt} %</span>
+              <span>max ${p.max} %</span>
+            </div>
+            <div class="norm-item-source">${p.zdroj}</div>
+          </div>`;
+      });
+      html += '</div>';
+    });
+    content.innerHTML = html;
+    document.getElementById('norm-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('norm-modal').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('norm-modal')) closeModal();
+  }
+
+  function vyplnSpad(hodnota) {
+    document.getElementById('sp-pct').checked = true;
+    document.getElementById('sp-hodnota-label').textContent = 'Hodnota spádu (%)';
+    document.getElementById('sp-hodnota').value = hodnota;
+    closeModal();
+  }
+
+  // ── navigace ──
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // ── label spádu ──
+  document.querySelectorAll('input[name="sp-typ"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('sp-hodnota-label').textContent =
+        r.value === 'pct' ? 'Hodnota spádu (%)' : 'Hodnota spádu (°)';
+    });
+  });
+
+  // ── formát dlaždice – preset / vlastní ──
+  document.querySelectorAll('input[name="dlaz-format"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('field-custom').style.display =
+        r.value === 'custom' ? 'block' : 'none';
+    });
+  });
+
+  // ── úhel z diagonály ──
+  function pocitejUhel() {
+    const r = parseFloat(document.querySelector('input[name="rameno"]:checked').value);
+    const d = parseFloat(document.getElementById('diagonala').value);
+    if (isNaN(d) || d <= 0) return;
+
+    const cos = (2 * r * r - d * d) / (2 * r * r);
+    if (cos < -1 || cos > 1) return;
+    const uhel = Math.acos(cos) * (180 / Math.PI);
+    const odchylka = uhel - 90;
+
+    document.getElementById('res-uhel').textContent = uhel.toFixed(2) + '°';
+
+    const odEl = document.getElementById('res-odchylka');
+    odEl.textContent = (odchylka >= 0 ? '+' : '') + odchylka.toFixed(2) + '°';
+
+    const chEl = document.getElementById('res-charakter');
+    if (Math.abs(odchylka) < 0.05) {
+      chEl.textContent = 'Roh je PRAVÝ';
+      chEl.className = 'rval right';
+    } else if (uhel < 90) {
+      chEl.textContent = 'Roh je OSTRÝ';
+      chEl.className = 'rval sharp';
+    } else {
+      chEl.textContent = 'Roh je TUPÝ';
+      chEl.className = 'rval';
+    }
+
+    document.getElementById('result-uhel').classList.add('visible');
+  }
+
+  // ── vytyčení bodu ──
+  function pocitejTan() {
+    const rameno = parseFloat(document.getElementById('tan-rameno').value);
+    const uhel = parseFloat(document.getElementById('tan-uhel').value);
+    if (isNaN(rameno) || isNaN(uhel) || uhel <= 0 || uhel >= 90) return;
+
+    const vzdalenost = rameno * Math.tan(uhel * Math.PI / 180);
+    document.getElementById('res-tan').textContent = vzdalenost.toFixed(2) + ' cm';
+    document.getElementById('result-tan').classList.add('visible');
+  }
+
+  // ── spády ──
+  function pocitejSpady() {
+    const delka = parseFloat(document.getElementById('sp-delka').value);
+    const hodnota = parseFloat(document.getElementById('sp-hodnota').value);
+    const typ = document.querySelector('input[name="sp-typ"]:checked').value;
+    const krok = parseFloat(document.querySelector('input[name="sp-krok"]:checked').value);
+    if (isNaN(delka) || isNaN(hodnota) || delka <= 0 || hodnota <= 0) return;
+
+    let mmNaMetr;
+    if (typ === 'pct') {
+      mmNaMetr = (hodnota / 100) * 1000;
+    } else {
+      mmNaMetr = Math.tan(hodnota * Math.PI / 180) * 1000;
+    }
+
+    const tbody = document.getElementById('spady-tbody');
+    tbody.innerHTML = '';
+
+    const addRow = (pos) => {
+      const mm = -(mmNaMetr * pos);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${pos.toFixed(2).replace('.', ',')} m</td><td>${Math.round(mm)} mm</td>`;
+      tbody.appendChild(tr);
+    };
+
+    if (delka <= krok) {
+      addRow(0);
+      addRow(delka);
+    } else {
+      for (let pos = 0; pos < delka - 0.001; pos += krok) {
+        addRow(pos);
+      }
+      addRow(delka);
+    }
+
+    document.getElementById('result-spady').classList.add('visible');
+  }
+
+  // ── terče na terase ──
+  function getTileDimensions() {
+    const format = document.querySelector('input[name="dlaz-format"]:checked').value;
+    if (format === 'custom') {
+      return {
+        L: parseFloat(document.getElementById('tileL').value),
+        W: parseFloat(document.getElementById('tileW').value)
+      };
+    }
+    const [l, w] = format.split('x').map(Number);
+    return { L: l, W: w };
+  }
+
+  function pocitejTerce() {
+    const tile = getTileDimensions();
+    const areaL = parseFloat(document.getElementById('areaL').value);
+    const areaW = parseFloat(document.getElementById('areaW').value);
+    const slope = parseFloat(document.getElementById('tc-slope').value);
+    const slopeDir = document.getElementById('slopeDir').value;
+    const startH = parseFloat(document.getElementById('startH').value);
+    const terraceShape = document.getElementById('terraceShape').value;
+
+    if (!tile.L || !tile.W || !areaL || !areaW || slope < 0 || !startH) {
+      alert('Zkontrolujte zadané hodnoty.');
+      return;
+    }
+
+    const countL = Math.ceil(areaL / tile.L);
+    const countW = Math.ceil(areaW / tile.W);
+    const totalTiles = countL * countW;
+
+    const segmentsL = Math.ceil(tile.L / 600);
+    const segmentsW = Math.ceil(tile.W / 600);
+    const basePedestals = (countL * segmentsL + 1) * (countW * segmentsW + 1);
+
+    let shapeMultiplier = 1.0;
+    let shapeInfo = 'Obdélník – optimální sdílení terčů';
+    switch(terraceShape) {
+      case 'L': shapeMultiplier = 1.15; shapeInfo = 'Tvar L – více okrajových terčů'; break;
+      case 'U': shapeMultiplier = 1.25; shapeInfo = 'Tvar U – výrazně více okrajových terčů'; break;
+      case 'complex': shapeMultiplier = 1.35; shapeInfo = 'Složitý tvar – doporučená rezerva'; break;
+    }
+    const totalPedestals = Math.ceil(basePedestals * shapeMultiplier);
+
+    const isSlopeAlongL = (slopeDir === 'L');
+    const maxRows = isSlopeAlongL ? (countL * segmentsL + 1) : (countW * segmentsW + 1);
+    const stepDistance = isSlopeAlongL ? (tile.L / segmentsL) : (tile.W / segmentsW);
+    const dropPerRow = stepDistance * (slope / 100);
+
+    const tbody = document.getElementById('terce-tbody');
+    tbody.innerHTML = '';
+
+    const MIN_H = 20;
+    let minHeight = startH;
+    let criticalRow = -1;
+
+    const visualContainer = document.getElementById('tc-visual');
+    visualContainer.innerHTML = '';
+    const visualStep = Math.max(1, Math.floor(maxRows / 12));
+
+    for (let i = 0; i < maxRows; i++) {
+      const distance = i * stepDistance;
+      const height = startH - (i * dropPerRow);
+      if (height < minHeight) minHeight = height;
+      if (height < MIN_H && criticalRow === -1) criticalRow = i + 1;
+
+      if (maxRows <= 20 || i % 2 === 0 || i === maxRows - 1) {
+        const tr = document.createElement('tr');
+        const isDanger = height < MIN_H;
+        tr.innerHTML = `
+          <td>${i + 1}.</td>
+          <td>${distance} mm</td>
+          <td class="${isDanger ? 'danger' : ''}">${height.toFixed(1)} mm</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      if (i % visualStep === 0 || i === maxRows - 1) {
+        const heightPercent = Math.max(5, (height / startH) * 100);
+        const bar = document.createElement('div');
+        bar.className = 'pedestal-bar';
+        if (i === 0) bar.classList.add('first');
+        if (i === maxRows - 1) bar.classList.add('last');
+        bar.style.height = `${heightPercent}%`;
+        bar.innerHTML = `<span>${height.toFixed(0)}</span>`;
+        visualContainer.appendChild(bar);
+      }
+    }
+
+    document.getElementById('res-tiles').textContent = totalTiles;
+    document.getElementById('res-pedestals').textContent = totalPedestals;
+    document.getElementById('result-terce').classList.add('visible');
+
+    document.getElementById('tc-info').innerHTML =
+      `<strong>Logika výpočtu (max. rozteč 600 mm):</strong><br>` +
+      `• Délka: ${segmentsL} segment(ů) na dlaždici<br>` +
+      `• Šířka: ${segmentsW} segment(ů) na dlaždici<br>` +
+      `• Základní sdílená mřížka: ${basePedestals} terčů<br>` +
+      `• ${shapeInfo} (násobitel: ${shapeMultiplier})`;
+
+    const warnEl = document.getElementById('tc-warning');
+    const succEl = document.getElementById('tc-success');
+
+    if (criticalRow !== -1) {
+      warnEl.innerHTML = `⚠️ <strong>Upozornění:</strong> Od <strong>${criticalRow}. řady</strong> klesá výška pod minimum ${MIN_H} mm (nejnižší bod: ${minHeight.toFixed(1)} mm).<br><br>
+        <strong>Možná řešení:</strong>
+        <ul>
+          <li>Zvýšit výchozí výšku terče.</li>
+          <li>Snížit spád (pokud to dovolí norma).</li>
+          <li>Použít ultra-nízké terče (např. Buzon PB-00, 15 mm).</li>
+        </ul>`;
+      warnEl.classList.add('visible');
+      succEl.classList.remove('visible');
+    } else {
+      succEl.innerHTML = `✅ <strong>V pořádku:</strong> Výšky terčů klesají od ${startH} mm na ${minHeight.toFixed(1)} mm. Vše nad minimem ${MIN_H} mm.`;
+      succEl.classList.add('visible');
+      warnEl.classList.remove('visible');
+    }
+  }
+</script>
+
+<!-- Service Worker registrace -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+
+</body>
+</html>
